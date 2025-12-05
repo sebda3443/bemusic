@@ -1,0 +1,11 @@
+.git
+.gitignore
+node_modules
+vendor
+storage/*.key
+.env
+.DS_Store
+*.log
+docker-compose.yml
+Dockerfile
+.docker
