@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: bemusic
+    env: php
+    buildCommand: |
+      cp .env.example .env
+      composer install --no-dev --optimize-autoloader
+      php artisan key:generate --force
+      php artisan storage:link
+      php artisan horizon:publish
+      npm ci --only=production
+      npm run build
+    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: APP_KEY
+        generateValue: true
+    autoDeploy: true
