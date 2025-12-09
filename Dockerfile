@@ -11,12 +11,16 @@ RUN apt-get update && apt-get install -y \
     unzip \
     nodejs \
     npm \
-    sqlite3 \
-    libsqlite3-dev \
-    && docker-php-ext-install pdo pdo_sqlite pdo_mysql mbstring exif pcntl bcmath gd
+    libzip-dev \
+    libicu-dev \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd intl zip
 
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Configurer Apache pour Fly.io
+RUN a2enmod rewrite headers
+COPY .docker/apache-fly.conf /etc/apache2/sites-available/000-default.conf
 
 # Définir le répertoire de travail
 WORKDIR /var/www/html
@@ -24,29 +28,16 @@ WORKDIR /var/www/html
 # Copier les fichiers
 COPY . .
 
-# Installer les dépendances PHP
+# Installer les dépendances
 RUN composer install --no-dev --optimize-autoloader
-
-# Installer les dépendances Node.js
 RUN npm install --only=production
 RUN npm run build
 
-# Configurer Apache
-RUN a2enmod rewrite
-COPY ./.docker/apache.conf /etc/apache2/sites-available/000-default.conf
-
-# Créer .env à partir de .env.example
-RUN cp .env.example .env
-
-# Générer la clé d'application
-RUN php artisan key:generate --force
-
-# Créer le lien de stockage
-RUN php artisan storage:link
-
-# Définir les permissions
+# Configurer les permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-EXPOSE 80
-CMD ["apache2-foreground"]
+# Port pour Fly.io
+EXPOSE 8080
+
+CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
